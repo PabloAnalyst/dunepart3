@@ -14,7 +14,7 @@ from datetime import datetime
 
 # ---------- CONFIGURACIÓN (se lee de variables de entorno) ----------
 URL = "https://www.pacine.com/cines/cine-colombia-multiplex-nuestro-bogota"
-PALABRA_CLAVE = "dune"
+PALABRA_CLAVE = "paw"
 
 EMAIL_FROM = os.environ.get("DUNE_EMAIL_FROM")       # tu correo de Gmail
 EMAIL_PASSWORD = os.environ.get("DUNE_EMAIL_PASSWORD")  # contraseña de aplicación (no la normal)
@@ -85,3 +85,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
