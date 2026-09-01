@@ -1,0 +1,36 @@
+name: Vigilar Dune 3 en Nuestro Bogotá
+
+on:
+  schedule:
+    # Corre todos los días a las 14:00 UTC = 9:00 am hora de Bogotá
+    - cron: '0 14 * * *'
+  workflow_dispatch: {}   # permite correrlo manualmente desde la pestaña Actions
+
+jobs:
+  revisar-cartelera:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Restaurar el "ya avisado" de la corrida anterior
+        uses: actions/cache@v4
+        with:
+          path: ya_avisado.flag
+          key: dune-flag-${{ github.run_id }}
+          restore-keys: dune-flag-
+
+      - name: Ejecutar chequeo
+        env:
+          DUNE_EMAIL_FROM: ${{ secrets.DUNE_EMAIL_FROM }}
+          DUNE_EMAIL_PASSWORD: ${{ secrets.DUNE_EMAIL_PASSWORD }}
+          DUNE_EMAIL_TO: ${{ secrets.DUNE_EMAIL_TO }}
+        run: python check_dune.py
