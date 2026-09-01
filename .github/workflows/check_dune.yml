@@ -2,9 +2,8 @@ name: Vigilar Dune 3 en Nuestro Bogotá
 
 on:
   schedule:
-    # Todos los días a las 14:00 UTC = 9:00 a. m. hora de Bogotá
-    - cron: '0 14 * * *'
-  workflow_dispatch: {}   # Permite ejecutarlo manualmente desde Actions
+    - cron: '30 18 * * *'
+  workflow_dispatch: {}
 
 jobs:
   revisar-cartelera:
