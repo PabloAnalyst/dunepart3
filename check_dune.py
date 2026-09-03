@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
 Vigilante de Dune 3 en Cine Colombia - Nuestro Bogotá
-Revisa la cartelera y envía un correo si aparece "DUNE".
+Revisa varias páginas de cartelera y envía un correo si aparece "DUNE" en alguna.
 Diseñado para correr una vez al día vía cron.
 """
-
 import os
 import sys
 import smtplib
@@ -13,18 +12,21 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 # ---------- CONFIGURACIÓN (se lee de variables de entorno) ----------
-URL = "https://www.pacine.com/cines/cine-colombia-multiplex-nuestro-bogota"
-PALABRA_CLAVE = "dune"
+# Diccionario: nombre descriptivo -> URL a revisar
+URLS = {
+    "Pacine (Cine Colombia Multiplex Nuestro Bogotá)": "https://www.pacine.com/cines/cine-colombia-multiplex-nuestro-bogota",
+    "Página oficial Cine Colombia (cartelera)": "https://www.cinecolombia.com/films/",
+}
 
+PALABRA_CLAVE = "dune"
 EMAIL_FROM = os.environ.get("DUNE_EMAIL_FROM")       # tu correo de Gmail
 EMAIL_PASSWORD = os.environ.get("DUNE_EMAIL_PASSWORD")  # contraseña de aplicación (no la normal)
 EMAIL_TO = os.environ.get("DUNE_EMAIL_TO", EMAIL_FROM)  # a quién avisar (por defecto, a ti mismo)
-
 LOG_FILE = "log.txt"
 ALERT_SENT_FLAG = "ya_avisado.flag"
 
-# ---------- FUNCIONES ----------
 
+# ---------- FUNCIONES ----------
 def log(mensaje):
     linea = f"[{datetime.now().isoformat(timespec='seconds')}] {mensaje}"
     print(linea)
@@ -32,12 +34,29 @@ def log(mensaje):
         f.write(linea + "\n")
 
 
-def revisar_pagina():
+def revisar_pagina(url):
     headers = {"User-Agent": "Mozilla/5.0 (compatible; DuneWatcher/1.0)"}
-    resp = requests.get(URL, headers=headers, timeout=20)
+    resp = requests.get(url, headers=headers, timeout=20)
     resp.raise_for_status()
     texto = resp.text.lower()
     return PALABRA_CLAVE in texto
+
+
+def revisar_todas_las_paginas():
+    """
+    Revisa cada URL configurada. Devuelve una lista de tuplas
+    (nombre, url) de las páginas donde se encontró la palabra clave.
+    Si una página falla (error de red, etc.), se registra el error
+    y se sigue revisando las demás en vez de detener todo el proceso.
+    """
+    encontrados = []
+    for nombre, url in URLS.items():
+        try:
+            if revisar_pagina(url):
+                encontrados.append((nombre, url))
+        except Exception as e:
+            log(f"ERROR revisando '{nombre}' ({url}): {e}")
+    return encontrados
 
 
 def enviar_correo(asunto, cuerpo):
@@ -60,29 +79,28 @@ def enviar_correo(asunto, cuerpo):
 
 
 def main():
-    try:
-        encontrado = revisar_pagina()
-    except Exception as e:
-        log(f"ERROR revisando la página: {e}")
-        sys.exit(1)
+    encontrados = revisar_todas_las_paginas()
 
     ya_avisado = os.path.exists(ALERT_SENT_FLAG)
 
-    if encontrado and not ya_avisado:
-        log("¡DUNE encontrado en la cartelera! Enviando alerta.")
+    if encontrados and not ya_avisado:
+        fuentes_texto = "\n".join(f"- {nombre}: {url}" for nombre, url in encontrados)
+        log(f"¡DUNE encontrado en: {', '.join(n for n, _ in encontrados)}! Enviando alerta.")
         enviar_correo(
-            "🚨 DUNE 3 ya está en la cartelera de Nuestro Bogotá",
-            f"Se detectó la palabra 'Dune' en:\n{URL}\n\n¡Ve a comprar las boletas ya!"
+            "🚨 DUNE 3 ya está en cartelera",
+            f"Se detectó la palabra 'Dune' en las siguientes páginas:\n\n{fuentes_texto}\n\n¡Ve a comprar las boletas ya!"
         )
         # Marca que ya se avisó, para no mandar correo cada día una vez detectado
         with open(ALERT_SENT_FLAG, "w") as f:
             f.write(datetime.now().isoformat())
-    elif encontrado and ya_avisado:
-        log("Dune sigue en cartelera, ya se había avisado antes. No se reenvía correo.")
+    elif encontrados and ya_avisado:
+        log(
+            "Dune sigue en cartelera "
+            f"({', '.join(n for n, _ in encontrados)}), ya se había avisado antes. No se reenvía correo."
+        )
     else:
-        log("Todavía no aparece Dune en la cartelera.")
+        log("Todavía no aparece Dune en ninguna de las páginas revisadas.")
 
 
 if __name__ == "__main__":
     main()
-
