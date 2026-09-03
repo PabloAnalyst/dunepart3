@@ -18,7 +18,7 @@ URLS = {
     "Página oficial Cine Colombia (cartelera)": "https://www.cinecolombia.com/films/",
 }
 
-PALABRA_CLAVE = "paw"
+PALABRA_CLAVE = "dune"
 EMAIL_FROM = os.environ.get("DUNE_EMAIL_FROM")       # tu correo de Gmail
 EMAIL_PASSWORD = os.environ.get("DUNE_EMAIL_PASSWORD")  # contraseña de aplicación (no la normal)
 EMAIL_TO = os.environ.get("DUNE_EMAIL_TO", EMAIL_FROM)  # a quién avisar (por defecto, a ti mismo)
